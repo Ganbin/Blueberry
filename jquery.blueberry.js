@@ -17,6 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ *
+ * EDITED : By Ganbin 19.02.2013
+ * Avoid the bug when you click quickly multi time on a image in the pager
+ * Before it cause a speed up of the animation. Now with this code,
+ * a timer is set that the user can't click on another image before waiting 700 milliseconds.
+ *
  */
 
 (function($){
@@ -72,31 +78,41 @@
 					pager = $('.pager li', obj);
 					pager.eq(current).addClass('active');
 				}
-
-				//rotate to selected slide on pager click
-				if(pager){
-					$('a', pager).click(function() {
-						//stop the timer
-						clearTimeout(obj.play);
-						//set the slide index based on pager index
-						next = $(this).parent().index();
-						//rotate the slides
-						rotate();
-						return false;
-					});
+				
+				// ADDITION 19.02.2013
+				// ADDITION TO Prevent multiClick on the pager
+				var onClickFunction = function() {
+					$('a', pager).unbind('click',onClickFunction); // ADDITION TO Prevent multiClick on the pager
+					//stop the timer
+					clearTimeout(obj.play);
+					//set the slide index based on pager index
+					next = $(this).parent().index();
+					//rotate the slides
+					rotate();
+					
+					window.setTimeout(function(){$('a', pager).bind('click',onClickFunction)},700);// ADDITION TO Prevent multiClick on the pager
+					
+					return false;
 				}
+				//rotate to selected slide on pager click				
+				if(pager){
+					$('a', pager).bind('click',onClickFunction); // ADDITION TO Prevent multiClick on the pager
+				}
+				
+				// STOP OF THE ADDITION 19.02.2013
 
 				//primary function to change slides
 				var rotate = function(){
 					//fade out current slide and remove active class,
 					//fade in next slide and add active class
+					
 					slides.eq(current).fadeOut(o.duration).removeClass('active')
 						.end().eq(next).fadeIn(o.duration).addClass('active').queue(function(){
 							//add rotateTimer function to end of animation queue
 							//this prevents animation buildup caused by requestAnimationFrame
 							//rotateTimer starts a timer for the next rotate
 							rotateTimer();
-							$(this).dequeue()
+							$(this).dequeue();
 					});
 
 					//update pager to reflect slide change
@@ -109,6 +125,7 @@
 					//set next as first slide if current is the last
 					current = next;
 					next = current >= slides.length-1 ? 0 : current+1;
+				
 				};
 				//create a timer to control slide rotation interval
 				var rotateTimer = function(){
